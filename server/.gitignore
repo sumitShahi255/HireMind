@@ -19,3 +19,6 @@ temp/
 # editor files
 .vscode/
 .idea/
+
+# backups
+backup/

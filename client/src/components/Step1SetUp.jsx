@@ -1,4 +1,3 @@
-import React from 'react'
 import { motion } from "motion/react";
 import {UserRound,BriefcaseBusiness,Upload,Mic,TrendingUp} from "lucide-react";
 import { useState } from 'react';
@@ -11,7 +10,6 @@ function Step1SetUp({onStart}) {
   const {userData} = useSelector((state) => state.user)
   const dispatch = useDispatch()
   const [name, setName] = useState("");
-  const [education, setEducation] = useState("");
   const [role, setRole] = useState("");
   const [experience, setExperience] = useState("");
   const [mode, setMode] = useState("Technical");
@@ -33,7 +31,7 @@ function Step1SetUp({onStart}) {
     formData.append("resume",resumeFile);
 
     try {
-      const result = await axios.post(ServerUrl + "/api/interview/resume",formData, {withCredentials:true});
+      const result = await axios.post(ServerUrl + "/api/dynamic-interview/resume",formData, {withCredentials:true});
       console.log(result.data);
 
       setRole(result.data.role || "");
@@ -53,7 +51,7 @@ function Step1SetUp({onStart}) {
   const handleStart = async () => {
     setLoading(true)
     try {
-      const result = await axios.post(ServerUrl + "/api/interview/generate-questions",{role, experience, mode,
+      const result = await axios.post(ServerUrl + "/api/dynamic-interview/start",{role, experience, mode: mode.toUpperCase(),
         resumeText, projects, skills, userName: name },{withCredentials:true});
       console.log(result.data);
 

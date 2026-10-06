@@ -12,13 +12,4 @@ export const getCurrentUser = async (req,res) => {
           return res.status(500).json({message:`failed to get currentUser ${error}`})  
       }
 }
-
-// Temporary route for you to top-up credits during development
-export const topUpCredits = async (req, res) => {
-      try {
-            await User.updateMany({}, { credits: 5000 });
-            return res.status(200).send("<h1>All users topped up to 5000 credits!</h1><p>You can go back to the app now.</p>");
-      } catch (error) {
-            return res.status(500).json({message:`failed to top up ${error}`});
-      }
-}
+

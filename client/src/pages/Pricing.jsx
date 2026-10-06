@@ -1,10 +1,9 @@
 import { ArrowLeft, BadgeCheck } from 'lucide-react'
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, scale } from "motion/react";
+import { motion } from "motion/react";
 import axios from 'axios';
 import { ServerUrl } from '../App';
-import { current } from '@reduxjs/toolkit';
 import { useDispatch } from 'react-redux';
 import { setUserData } from '../redux/userSlice';
 
@@ -79,7 +78,7 @@ function Pricing() {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: result.data.amount,
         current: "INR",
-        name: "SmartHire.AI",
+        name: "HireMind",
         description: `${plan.name} - ${plan.credits} Interview Credits`,
         order_id: result.data.id,
 
@@ -91,7 +90,7 @@ function Pricing() {
 
           alert("Payment Successful Credits Added!")
 
-          navigate("/");
+          navigate("/", { replace: true });
         },
 
         theme:{
@@ -114,7 +113,7 @@ function Pricing() {
 
       <div className='max-w-6xl mx-auto mb-14 flex items-center gap-4'>
 
-        <button onClick={()=> navigate("/")} 
+        <button onClick={()=> navigate(-1)} 
         className='mt-2 p-3 rounded-full bg-white shadow hover:shadow-md transition'>
           <ArrowLeft size={18} className='text-gray-600'/>
         </button>

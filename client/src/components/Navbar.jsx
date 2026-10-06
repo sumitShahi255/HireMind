@@ -1,7 +1,6 @@
-import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { motion } from "motion/react";
-import { Sparkles, Wallet, User, History, LogOut } from "lucide-react";
+import { Sparkles, Wallet, User, History, LogOut, ShieldCheck } from "lucide-react";
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios  from 'axios';
@@ -24,13 +23,13 @@ function Navbar() {
                   dispatch(setUserData(null))
                   setShowCreditPopup(false)
                   setShowUserPopup(false)
-                  navigate("/")
+                  navigate("/", { replace: true })
             } catch (error) {
                  console.log(error) 
             }
       }
   return (
-    <div className='bg-linear-to-r from-gray-100 to-gray-200 flex justify-center px-4 pt-6'>
+    <div className='sticky top-0 z-50 flex justify-center px-4 pt-6 pb-4'>
       <motion.div
       initial={{opacity:0,y:-40}}
       animate={{opacity:1,y:0}}
@@ -38,12 +37,12 @@ function Navbar() {
       className='w-full max-w-6xl bg-white/80 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-200 px-6 
       py-4 flex justify-between items-center relative'>
             
-            <div className='flex items-center gap-3 cursor-pointer'>
+            <div className='flex items-center gap-3 cursor-pointer' onClick={() => navigate("/", { replace: true })}>
                   <div className='bg-linear-to-r from-black to-gray-700 text-white p-2 rounded-xl shadow-md'>
                        <Sparkles size={20} />
                   </div>
                   <h1 className='font-bold hidden md:block text-xl tracking-wide'>
-                  SmartHire<span className='text-gray-500'>.AI</span>
+                  Hire<span className='text-gray-500'>Mind</span>
                   </h1>
             </div>
 
@@ -99,6 +98,12 @@ function Navbar() {
                                     className='w-full text-left text-sm py-2 flex items-center gap-2 hover:text-blue-500 transition'>
                                           <History size={18} />
                                           Interview History
+                                    </button>
+
+                                    <button  onClick={() => navigate("/assessment-report")} 
+                                    className='w-full text-left text-sm py-2 flex items-center gap-2 hover:text-indigo-500 transition'>
+                                          <ShieldCheck size={18} />
+                                          Assessment Report
                                     </button>
 
                                     <button onClick={handleLogout} 

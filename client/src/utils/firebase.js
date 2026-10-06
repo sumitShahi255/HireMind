@@ -1,13 +1,13 @@
 import { initializeApp } from "firebase/app";
-import {getAuth, GoogleAuthProvider} from "firebase/auth"
+import {getAuth, GoogleAuthProvider, FacebookAuthProvider, TwitterAuthProvider} from "firebase/auth"
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_APIKEY,
-  authDomain: "smarthire-a6c1c.firebaseapp.com",
-  projectId: "smarthire-a6c1c",
-  storageBucket: "smarthire-a6c1c.firebasestorage.app",
-  messagingSenderId: "1031641417737",
-  appId: "1:1031641417737:web:5d2b3911c06a482e9c50d8"
+  authDomain: "hiremind-b40a7.firebaseapp.com",
+  projectId: "hiremind-b40a7",
+  storageBucket: "hiremind-b40a7.firebasestorage.app",
+  messagingSenderId: "112285916490",
+  appId: "1:112285916490:web:8cc01c211493b5836ab5b3"
 };
 
 
@@ -16,5 +16,13 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 const provider = new GoogleAuthProvider();
+provider.addScope('email');
+provider.addScope('profile');
+provider.setCustomParameters({
+  prompt: 'select_account'
+});
 
-export {auth,provider};
+const facebookProvider = new FacebookAuthProvider();
+const twitterProvider = new TwitterAuthProvider();
+
+export {auth, provider, facebookProvider, twitterProvider};

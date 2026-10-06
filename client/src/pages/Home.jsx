@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Navbar from "../components/Navbar";
 import { useSelector } from "react-redux";
 import { motion } from "motion/react";
@@ -75,6 +75,21 @@ function Home() {
                 className="bg-black text-white px-10 py-3 rounded-full hover:opacity-90 transition shadow-md"
               >
                Start Mock Interview
+              </motion.button>
+
+              <motion.button
+                onClick={() => {
+                  if (!userData) {
+                    setShowAuth(true);
+                    return;
+                  }
+                  navigate("/coding-interview");
+                }}
+                whileHover={{ opacity: 0.9, scale: 1.03 }}
+                whileTap={{ opacity: 1, scale: 0.98 }}
+                className="bg-green-600 text-white px-10 py-3 rounded-full hover:bg-green-700 transition shadow-md"
+              >
+                Start Coding Interview
               </motion.button>
 
               <motion.button
@@ -254,14 +269,33 @@ function Home() {
                   title: "Credits & Unlocks",
                   desc: "Unlock advanced interview features using credits.",
                 },
+                {
+                  image: techImg,
+                  title: "Code Interview",
+                  desc: "Practice real coding interviews with compiler, test cases, timer, and AI evaluation.",
+                  onClick: () => {
+                    if (!userData) {
+                      setShowAuth(true);
+                      return;
+                    }
+                    navigate("/coding-interview");
+                  }
+                },
               ].map((mode, index) => (
                 <motion.div
                   key={index}
+                  onClick={() => {
+                    if (mode.onClick) {
+                      mode.onClick();
+                    }
+                  }}
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   whileHover={{ y: -6 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all"
+                  className={`bg-white border border-gray-200 rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all ${
+                    mode.onClick ? "cursor-pointer" : ""
+                  }`}
                 >
                   <div className="flex items-center justify-between gap-6">
                     <div className="w-1/2">

@@ -1,4 +1,3 @@
-import React from 'react'
 import { Bot } from "lucide-react";
 
 
@@ -14,7 +13,7 @@ function Footer() {
                   </div>
 
                   <h2 className='font-semibold text-lg tracking-tight'>
-                        SmartHire<span className='text-green-600'>.AI</span>
+                        Hire<span className='text-green-600'>Mind</span>
                   </h2>  
 
             </div>

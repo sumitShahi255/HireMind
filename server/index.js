@@ -6,8 +6,12 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRouter from "./routes/auth.route.js";
 import userRouter from "./routes/user.route.js";
-import interviewRouter from "./routes/interview.route.js";
+
 import paymentRouter from "./routes/payment.route.js";
+import codingInterviewRouter from "./routes/codingInterview.route.js";
+import proctoringRouter from "./routes/proctoring.route.js";
+import dynamicInterviewRouter from "./routes/dynamicInterview.route.js";
+import evaluationRouter from "./routes/evaluation.route.js";
 
 
 const app = express();
@@ -16,15 +20,18 @@ app.use(cors({
   credentials: true
 }))
 
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+app.use(express.json());
 app.use(cookieParser());
 app.use("/public", express.static("public"));
 
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
-app.use("/api/interview", interviewRouter);
+
 app.use("/api/payment", paymentRouter);
+app.use("/api/coding-interview", codingInterviewRouter);
+app.use("/api/proctoring", proctoringRouter);
+app.use("/api/dynamic-interview", dynamicInterviewRouter);
+app.use("/api/evaluation", evaluationRouter);
 
 
 

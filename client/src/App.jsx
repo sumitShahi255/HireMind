@@ -1,4 +1,3 @@
-import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import Home from './pages/Home';
 import Auth from './pages/Auth';
@@ -10,6 +9,10 @@ import InterviewPage from './pages/InterviewPage';
 import InterviewHistory from './pages/InterviewHistory';
 import Pricing from './pages/Pricing';
 import InterviewReport from './pages/InterviewReport';
+import CompanySelection from './pages/coding-interview/CompanySelection';
+import CodingInterview from './pages/coding-interview/CodingInterview';
+import CodingResult from './pages/coding-interview/CodingResult';
+import AssessmentReport from './pages/AssessmentReport';
 
 
 export const ServerUrl = "http://localhost:8000"
@@ -37,6 +40,10 @@ function App() {
       <Route path='/history' element={<InterviewHistory/>} />
       <Route path='/pricing' element={<Pricing/>} />
       <Route path='/report/:id' element={<InterviewReport/>} />
+      <Route path='/coding-interview' element={<CompanySelection />} />
+      <Route path='/coding-interview/:id' element={<CodingInterview />} />
+      <Route path='/coding-interview/report/:id' element={<CodingResult />} />
+      <Route path='/assessment-report' element={<AssessmentReport/>} />
 
     </Routes>
   )

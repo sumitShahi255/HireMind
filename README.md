@@ -1,383 +1,216 @@
-# SmartHire.AI
+# 🚀 HireMind AI
+**An Explainable, Fair, and Adaptive AI-Powered Candidate Evaluation Platform**
 
-AI-powered mock interview platform built using the MERN stack with AI-generated interview questions, real-time video interviews, voice interaction, resume-based interviews, strict interview monitoring, and detailed performance analytics.
+![HireMind Banner](https://via.placeholder.com/1200x300?text=HireMind+AI+-+Explainable,+Fair+%26+Adaptive+Platform)
 
----
+HireMind AI is a state-of-the-art, developmental candidate evaluation platform built with the MERN stack. It integrates powerful AI models, real-time code execution, and strict AI proctoring with explainable scoring, skill gap analysis, and fairness auditing to revolutionize the hiring process.
 
-# Features
+## ✨ Features
+*   **AI Resume Intelligence:** Automatically extract skills, experience, and projects to build a personalized candidate profile.
+*   **Adaptive AI Interviews:** Dynamic question generation and follow-ups based on the candidate's previous responses.
+*   **Real-Time Coding Evaluation:** Integrated Monaco Editor with Judge0 sandbox for secure code compilation and intelligent AI analysis.
+*   **Strict AI Proctoring:** Client-side face tracking, object detection (phones/tablets), and tab-switching alerts using TensorFlow.js and MediaPipe.
+*   **Explainable Evaluation:** Transparent scoring metrics that show exactly what drove a candidate's score.
+*   **Fairness Audit:** Post-hoc fairness measurements to ensure equitable evaluation without demographic bias.
+*   **Personalized Skill Roadmaps:** Generates practical, step-by-step improvement plans for candidates based on skill gap analysis.
 
-* Real-time AI video interview system
-
-* Strict interview monitoring rules
-
-* Camera and microphone permission handling
-
-* Tab switching detection during interviews
-
-* Full-screen interview experience
-
-* Auto warning system for suspicious activity
-
-* Interview integrity tracking
-
-* AI-generated interview questions using GROQ API
-
-* Resume upload and analysis
-
-* Technical and HR interview rounds
-
-* Real-time AI voice interaction
-
-* Speech recognition support
-
-* AI-generated interview feedback
-
-* Interview analytics dashboard
-
-* Performance tracking and scoring
-
-* JWT authentication system
-
-* Google Authentication
-
-* Razorpay payment integration
-
-* Credit-based interview system
-
-* Face detection and expression tracking
-
-* Responsive modern UI
-
-* Full-stack MERN architecture
-
----
-
-# Tech Stack
-
-## Frontend
-
-* React.js
-* Vite
-* Tailwind CSS
-* Redux Toolkit
-* Framer Motion
-* Axios
-* React Router DOM
-* Lucide React Icons
-
-## Backend
-
-* Node.js
-* Express.js
-* MongoDB
-* Mongoose
-* JWT Authentication
-
-## AI & Voice Technologies
-
-* GROQ API for AI-generated interview questions and feedback
-* Web Speech API for speech recognition
-* Window SpeechSynthesis API for AI voice responses
-* face-api.js for face detection and expression analysis
-
-## Payment Gateway
-
-* Razorpay
-
----
-
-# Project Structure
+## 🏗 System Architecture
 
 ```text
-SmartHire_AI/
-│
-├── client/
-│   ├── public/
-│   ├── src/
-│   │   ├── assets/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   │   ├── Home.jsx
-│   │   │   ├── Auth.jsx
-│   │   │   ├── Pricing.jsx
-│   │   │   ├── InterviewPage.jsx
-│   │   │   ├── InterviewReport.jsx
-│   │   │   └── InterviewHistory.jsx
-│   │   ├── redux/
-│   │   ├── utils/
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   │
-│   ├── .gitignore
-│   ├── eslint.config.js
-│   ├── index.html
-│   ├── package.json
-│   ├── package-lock.json
-│   └── vite.config.js
-│
-├── server/
-│   ├── config/
-│   ├── controllers/
-│   ├── middlewares/
-│   ├── models/
-│   ├── routes/
-│   ├── services/
-│   ├── public/
-│   │   └── snapshots/
-│   │       └── .gitkeep
-│   ├── index.js
-│   ├── package.json
-│   ├── package-lock.json
-│   └── .gitignore
-│
-└── README.md
+                    ┌─────────────────────┐
+                    │    Job / Resume     │
+                    └──────────┬──────────┘
+                               ↓
+                    ┌─────────────────────┐
+                    │ Skill Extraction &  │
+                    │ Candidate Profiling │
+                    └──────────┬──────────┘
+                               ↓
+              ┌────────────────┴────────────────┐
+              ↓                                 ↓
+      AI Video / HR Interview            Live Coding / DSA
+              ↓                                 ↓
+      Adaptive Follow-ups                 Judge0 Evaluation
+              └────────────────┬────────────────┘
+                               ↓
+                     ┌──────────────────┐
+                     │ Evidence Engine  │
+                     └────────┬─────────┘
+                              ↓
+                ┌─────────────┴─────────────┐
+                ↓                           ↓
+        Explainable Score             Skill Gap Analysis
+                ↓                           ↓
+        SHAP / Feature Factors       Missing Competencies
+                └─────────────┬─────────────┘
+                              ↓
+                     Fairness Audit
+                              ↓
+                     Human Recruiter
+                              ↓
+                   Candidate Roadmap
+                              ↓
+                 Personalized Development
 ```
 
----
+## 🖼️ Preview / Demo
 
-# Installation
+| AI Interview Dashboard | Live Coding Sandbox |
+|:---:|:---:|
+| ![Dashboard](https://via.placeholder.com/600x350?text=Analytics+Dashboard) | ![Coding](https://via.placeholder.com/600x350?text=Live+Monaco+Editor) |
 
-## Clone Repository
+| Strict AI Proctoring | Follow-up Discussion |
+|:---:|:---:|
+| ![Proctoring](https://via.placeholder.com/600x350?text=Face+%26+Phone+Detection) | ![FollowUp](https://via.placeholder.com/600x350?text=AI+Voice+Discussion) |
 
+## 🚀 Live Demo
+`[Add live demo URL]`
+
+## 🛠️ Tech Stack
+
+| Technology | Purpose |
+| :--- | :--- |
+| **React 19 & Vite** | Fast, modern frontend framework and build tool |
+| **Tailwind CSS v4** | Utility-first styling for responsive design |
+| **Redux Toolkit** | Global state management |
+| **Node.js & Express.js** | Robust backend API and business logic |
+| **MongoDB & Mongoose** | NoSQL database and object data modeling |
+| **Groq API / OpenAI** | High-performance LLMs for evaluation and dynamic questions |
+| **TensorFlow.js / MediaPipe**| Client-side AI proctoring, vision, and audio tasks |
+| **Monaco Editor / Judge0** | In-browser IDE and secure sandboxed code execution |
+| **Firebase** | Authentication and real-time backend services |
+| **Razorpay** | Secure payment gateway integration |
+
+## 📦 Installation
+
+### Prerequisites
+*   [Node.js](https://nodejs.org/) (v18+ recommended)
+*   [MongoDB](https://www.mongodb.com/) (Local or Atlas)
+*   API Keys (Groq, RapidAPI/Judge0, Razorpay, Firebase)
+
+### Clone the Repository
 ```bash
 git clone https://github.com/sumitShahi255/SmartHire_AI.git
-```
-
-```bash
 cd SmartHire_AI
 ```
 
----
-
-# Client Setup
-
+### Install Dependencies
+**1. Install Client Dependencies**
 ```bash
 cd client
-```
-
-```bash
 npm install
 ```
 
+**2. Install Server Dependencies**
 ```bash
-npm run dev
+cd ../server
+npm install
 ```
 
-Frontend runs on:
+## ⚡ Quick Start
 
-```text
-http://localhost:5173
-```
+Start the application by running the frontend and backend servers simultaneously.
 
----
-
-# Server Setup
-
-Open another terminal:
-
+**Start the Backend API:**
 ```bash
 cd server
+npm run dev
 ```
+*Server runs on http://localhost:8000*
 
+**Start the Frontend Client:**
 ```bash
-npm install
+cd client
+npm run dev
 ```
+*Client runs on http://localhost:5173*
 
-```bash
-npm start
-```
+## ⚙️ Configuration / Environment Variables
 
-Backend runs on:
+Create a `.env` file in both the `client` and `server` directories based on the templates below.
+
+### Server (`server/.env`)
+
+| Variable | Description | Required | Example |
+|---|---|---|---|
+| `PORT` | API server port | Yes | `8000` |
+| `MONGODB_URL` | MongoDB connection string | Yes | `mongodb+srv://...` |
+| `JWT_SECRET` | Secret for JWT token generation | Yes | `your_jwt_secret` |
+| `groq_API_KEY` | Groq API Key for LLM services | Yes | `gsk_...` |
+| `RAZORPAY_KEY_ID` | Razorpay Key ID | Yes | `rzp_test_...` |
+| `RAZORPAY_KEY_SECRET` | Razorpay Secret | Yes | `...` |
+| `RAPID_API_KEY` | RapidAPI Key for Judge0 | Yes | `...` |
+| `OPENAI_API_KEY` | OpenAI API Key (if used as fallback) | No | `sk-...` |
+
+### Client (`client/.env`)
+
+| Variable | Description | Required | Example |
+|---|---|---|---|
+| `VITE_FIREBASE_APIKEY` | Firebase API Key | Yes | `AIzaSy...` |
+| `VITE_RAZORPAY_KEY_ID` | Razorpay Key ID for client payment flow | Yes | `rzp_test_...` |
+
+## 📁 Project Structure
 
 ```text
-http://localhost:5000
+SmartHire_AI/
+├── client/                 # Frontend React Application
+│   ├── src/
+│   │   ├── assets/         # Static assets and media
+│   │   ├── components/     # Reusable UI components
+│   │   ├── data/           # Mock data and constants
+│   │   ├── pages/          # Application route pages
+│   │   ├── redux/          # Redux slices and store configuration
+│   │   └── utils/          # Helper functions and configurations
+│   ├── package.json
+│   └── vite.config.js
+└── server/                 # Backend Node.js/Express API
+    ├── backup/             # Database backups
+    ├── config/             # Database and service configurations
+    ├── controllers/        # Request handlers and business logic
+    ├── middlewares/        # Custom Express middlewares (Auth, etc.)
+    ├── models/             # Mongoose database schemas
+    ├── routes/             # API route definitions
+    ├── services/           # External API integrations (LLMs, Payment)
+    ├── utils/              # Backend helper utilities
+    ├── index.js            # Server entry point
+    └── package.json
 ```
 
----
+## 💻 Usage
 
-# Environment Variables
+1. **Candidate Onboarding:** Candidates register and upload their resumes for automatic skill extraction.
+2. **AI Interviews:** Candidates undergo adaptive AI-driven interviews where questions evolve based on their answers.
+3. **Coding Assessments:** Candidates solve DSA problems in a live IDE (Monaco Editor) while being monitored by AI proctoring (webcam, face tracking, and screen focus).
+4. **Evaluation:** Recruiters receive an explainable evaluation report highlighting strengths, skill gaps, and a personalized candidate roadmap.
 
-## Client `.env`
+## 🔌 API Documentation
 
-```env
-VITE_API_URL=http://localhost:5000
-```
+*Core backend routes structure:*
 
-## Server `.env`
+| Module | Purpose |
+|---|---|
+| `/api/auth` | Login, Signup, Google OAuth, and JWT verification. |
+| `/api/coding-interview` | Fetch coding questions, execute code via Judge0, and submit for AI grading. |
+| `/api/interview` | Handle video uploads and voice-to-text response AI evaluation. |
+| `/api/payment` | Razorpay order creation and payment verification. |
 
-```env
-PORT=5000
-MONGO_URI=your_mongodb_connection
-JWT_SECRET=your_jwt_secret
-GROQ_API_KEY=your_groq_api_key
-RAZORPAY_KEY_ID=your_key_id
-RAZORPAY_KEY_SECRET=your_secret_key
-```
+## 🤝 Contributing
 
----
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-# Authentication
+## 📝 License
 
-* JWT-based authentication
-* Google Sign-In integration
-* Protected routes and middleware
+`[Add license information]`
 
----
+## 👨‍💻 Author
 
-# Interview Rules & Monitoring
+**Sumit Shahi**
+- [GitHub](https://github.com/sumitShahi255)
 
-The platform includes strict interview monitoring features to simulate real interview environments:
+## ⭐ Support
 
-* Users must allow camera and microphone access
-* Tab switching is monitored during interviews
-* Multiple tab switches can terminate the interview
-* Full-screen interview mode support
-* Copy, cut, and paste actions disabled during interviews
-* Keyboard shortcut restrictions during interview sessions
-* Real-time face detection monitoring
-* Interview warnings for suspicious activities
-* AI interview session tracking
-
----
-
-# AI Features
-
-SmartHire.AI uses AI technologies to:
-
-* Generate interview questions
-* Analyze user responses
-* Provide AI-generated feedback
-* Evaluate communication and correctness
-* Generate interview analytics reports
-* Detect facial expressions during interviews
-
----
-
-# Interview Analytics Dashboard
-
-The platform provides:
-
-* Overall interview performance score
-* Question-wise performance trends
-* Confidence analysis
-* Communication assessment
-* Correctness evaluation
-* AI-generated improvement suggestions
-
----
-
-# Payment Integration
-
-Razorpay integration is used for:
-
-* Credit purchases
-* Premium interview access
-* Secure payment processing
-* Test mode payment integration
-
----
-
-# Important Notes
-
-## Files Ignored from GitHub
-
-The following files/folders are ignored using `.gitignore`:
-
-```text
-node_modules/
-.env
-dist/
-build/
-```
-
-These files are automatically recreated using:
-
-```bash
-npm install
-```
-
----
-
-# Empty Folder Handling
-
-GitHub does not track empty folders.
-
-To keep folders like:
-
-```text
-server/public/snapshots
-```
-
-Use:
-
-```text
-.gitkeep
-```
-
-Example:
-
-```text
-server/public/snapshots/.gitkeep
-```
-
----
-
-# GitHub Setup
-
-## Initialize Git
-
-```bash
-git init
-```
-
-## Add Files
-
-```bash
-git add .
-```
-
-## Commit
-
-```bash
-git commit -m "Initial commit"
-```
-
-## Push to GitHub
-
-```bash
-git branch -M main
-```
-
-```bash
-git remote add origin YOUR_GITHUB_REPOSITORY_LINK
-```
-
-```bash
-git push -u origin main
-```
-
----
-
-# Future Improvements
-
-* Multi-language interviews
-* AI-generated resume optimization
-* Live coding interview rounds
-* Company-specific interview preparation
-* Aptitude and reasoning test modules
-
----
-
-# Author
-
-## Sumit Shahi
-
-Full Stack MERN Developer
-
-GitHub: [https://github.com/sumitShahi255](https://github.com/sumitShahi255)
-
----
-
-# License
-
-This project is for educational and portfolio purposes.
+If you found this project helpful, please give it a ⭐️ on GitHub!
