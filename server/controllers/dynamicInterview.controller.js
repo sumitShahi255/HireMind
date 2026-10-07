@@ -141,6 +141,7 @@ export const startDynamicInterview = async (req, res) => {
     // Create Interview
     const interview = await Interview.create({
       userId: user._id,
+      candidateName: userName || user?.name || "Candidate",
       resumeId: resume._id,
       role,
       experience,

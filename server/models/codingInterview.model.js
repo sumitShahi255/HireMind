@@ -73,6 +73,10 @@ const codingInterviewSchema = new mongoose.Schema({
     ref: "User",
     required: true
   },
+  candidateName: {
+    type: String,
+    default: ""
+  },
   company: {
     type: String,
     required: true

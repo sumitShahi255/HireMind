@@ -125,7 +125,7 @@ export const generateAssessmentReport = async () => {
       return {
         id: inv._id,
         attemptId: inv._id.toString().slice(-6).toUpperCase(),
-        name: inv.userId && inv.userId.name ? inv.userId.name : `Candidate ${idx + 1}`,
+        name: inv.candidateName || (inv.userId && inv.userId.name ? inv.userId.name : `Candidate ${idx + 1}`),
         typeLabel: typeLabel,
         date: inv.createdAt,
         overallScore: overallScore,

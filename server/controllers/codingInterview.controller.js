@@ -31,7 +31,7 @@ const getTemplateLanguageKey = (language) => {
 
 export const startCodingInterview = async (req, res) => {
   try {
-    const { company, language, difficulty, roundType } = req.body;
+    const { company, language, difficulty, roundType, userName } = req.body;
     const targetRound = roundType || "General";
 
     if (!company || !language || !difficulty) {
@@ -400,6 +400,7 @@ export const startCodingInterview = async (req, res) => {
     // Create Interview
     const codingInterview = await CodingInterview.create({
       userId: user._id,
+      candidateName: userName || user?.name || "Candidate",
       company,
       language,
       difficulty,

@@ -55,6 +55,10 @@ const interviewSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    candidateName: {
+      type: String,
+      default: ""
+    },
     resumeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Resume",
