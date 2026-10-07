@@ -28,11 +28,11 @@ export const uploadProctoringChunk = async (req, res) => {
 
     // Convert local public path to URL accessible path (handle Windows backslashes)
     const relativePath = file.path.replace(/\\/g, "/");
-    const fileUrl = `${process.env.SERVER_URL || 'http://localhost:8000'}/${relativePath}`;
-    
+    const fileUrl = `${process.env.SERVER_URL || 'https://hiremind-0acr.onrender.com'}/${relativePath}`;
+
     // Idempotency check: see if chunk with same sequenceNumber and type already exists
     let existingChunk = null;
-    
+
     if (chunkType === "video") {
       existingChunk = interview.recordings?.videoChunks?.find(c => c.sequenceNumber === parseInt(sequenceNumber));
     } else if (chunkType === "snapshot") {
@@ -50,7 +50,7 @@ export const uploadProctoringChunk = async (req, res) => {
         interview.recordings.snapshots.push({ url: fileUrl, sequenceNumber: parseInt(sequenceNumber) });
       }
     }
-    
+
     // Sync detections if provided
     if (totalDetections !== undefined) {
       interview.totalDetections = parseInt(totalDetections);
@@ -65,7 +65,7 @@ export const uploadProctoringChunk = async (req, res) => {
         console.error("Failed to parse proctoring logs:", e);
       }
     }
-    
+
     await Model.updateOne(
       { _id: interview._id },
       {

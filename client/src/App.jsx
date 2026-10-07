@@ -15,15 +15,15 @@ import CodingResult from './pages/coding-interview/CodingResult';
 import AssessmentReport from './pages/AssessmentReport';
 
 
-export const ServerUrl = "http://localhost:8000"
+export const ServerUrl = "https://hiremind-0acr.onrender.com"
 
 function App() {
 
   const dispatch = useDispatch()
   useEffect(() => {
-    const getUser = async () =>{
+    const getUser = async () => {
       try {
-        const result = await axios.get(ServerUrl + "/api/user/current-user",{withCredentials:true})
+        const result = await axios.get(ServerUrl + "/api/user/current-user", { withCredentials: true })
         dispatch(setUserData(result.data))
       } catch (error) {
         console.log(error)
@@ -31,19 +31,19 @@ function App() {
       }
     }
     getUser()
-  },[dispatch])
+  }, [dispatch])
   return (
     <Routes>
-      <Route path='/' element={<Home/>} />
-      <Route path='/auth' element={<Auth/>} />
-      <Route path='/interview' element={<InterviewPage/>} />
-      <Route path='/history' element={<InterviewHistory/>} />
-      <Route path='/pricing' element={<Pricing/>} />
-      <Route path='/report/:id' element={<InterviewReport/>} />
+      <Route path='/' element={<Home />} />
+      <Route path='/auth' element={<Auth />} />
+      <Route path='/interview' element={<InterviewPage />} />
+      <Route path='/history' element={<InterviewHistory />} />
+      <Route path='/pricing' element={<Pricing />} />
+      <Route path='/report/:id' element={<InterviewReport />} />
       <Route path='/coding-interview' element={<CompanySelection />} />
       <Route path='/coding-interview/:id' element={<CodingInterview />} />
       <Route path='/coding-interview/report/:id' element={<CodingResult />} />
-      <Route path='/assessment-report' element={<AssessmentReport/>} />
+      <Route path='/assessment-report' element={<AssessmentReport />} />
 
     </Routes>
   )
