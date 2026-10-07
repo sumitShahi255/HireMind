@@ -818,8 +818,14 @@ Return ONLY a valid JSON object in this format:
     const correctnessRatio = question.testCases.length > 0 ? (passedCases / question.testCases.length) : 0;
     const rawQuality = typeof evaluation.qualityScore === 'number' ? evaluation.qualityScore : parseInt(evaluation.qualityScore) || 50;
     let finalQuestionScore = Math.round((correctnessRatio * 80) + (rawQuality * 0.2));
-    if (correctnessRatio === 0 && rawQuality < 20) {
+    
+    const cleanUserCode = (userCode || "").replace(/\s+/g, '');
+    const cleanTemplate = (question.codeTemplate || "").replace(/\s+/g, '');
+    
+    if (cleanUserCode === cleanTemplate || cleanUserCode === "") {
       finalQuestionScore = 0;
+    } else if (correctnessRatio === 0) {
+      finalQuestionScore = Math.min(finalQuestionScore, 10);
     }
 
     question.aiEvaluation = {
@@ -1122,8 +1128,14 @@ Return ONLY a valid JSON object in this format:
       const correctnessRatio = question.testCases.length > 0 ? (passedCases / question.testCases.length) : 0;
       const rawQuality = typeof evaluation.qualityScore === 'number' ? evaluation.qualityScore : parseInt(evaluation.qualityScore) || 50;
       let finalQuestionScore = Math.round((correctnessRatio * 80) + (rawQuality * 0.2));
-      if (correctnessRatio === 0 && rawQuality < 20) {
+      
+      const cleanUserCode = (userCode || "").replace(/\s+/g, '');
+      const cleanTemplate = (question.codeTemplate || "").replace(/\s+/g, '');
+      
+      if (cleanUserCode === cleanTemplate || cleanUserCode === "") {
         finalQuestionScore = 0;
+      } else if (correctnessRatio === 0) {
+        finalQuestionScore = Math.min(finalQuestionScore, 10);
       }
 
       question.aiEvaluation = {
