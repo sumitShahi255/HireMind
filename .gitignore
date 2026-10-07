@@ -12,6 +12,7 @@ __pycache__/
 # Large models / files
 *.onnx
 *.pt
+!client/public/models/*.onnx
 
 # Editor directories and files
 .vscode/
