@@ -1129,9 +1129,6 @@ Return ONLY a valid JSON object in this format:
       const rawQuality = typeof evaluation.qualityScore === 'number' ? evaluation.qualityScore : parseInt(evaluation.qualityScore) || 50;
       let finalQuestionScore = Math.round((correctnessRatio * 80) + (rawQuality * 0.2));
       
-      const cleanUserCode = (userCode || "").replace(/\s+/g, '');
-      const cleanTemplate = (question.codeTemplate || "").replace(/\s+/g, '');
-      
       if (cleanUserCode === cleanTemplate || cleanUserCode === "") {
         finalQuestionScore = 0;
       } else if (correctnessRatio === 0) {
