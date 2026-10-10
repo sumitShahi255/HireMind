@@ -15,7 +15,7 @@ import CodingResult from './pages/coding-interview/CodingResult';
 import AssessmentReport from './pages/AssessmentReport';
 
 
-export const ServerUrl = "https://hiremind-0acr.onrender.com"
+export const ServerUrl = import.meta.env.MODE === "development" ? "http://localhost:8000" : "https://hiremind-0acr.onrender.com"
 
 function App() {
 
@@ -27,6 +27,7 @@ function App() {
         dispatch(setUserData(result.data))
       } catch (error) {
         console.log(error)
+        localStorage.removeItem("token");
         dispatch(setUserData(null))
       }
     }

@@ -40,6 +40,9 @@ function Auth({isModel = false}) {
 
                   const result = await axios.post(ServerUrl + "/api/auth/google",
                   {name: displayName, email: googleEmail},{withCredentials:true});
+                  if (result.data.token) {
+                        localStorage.setItem("token", result.data.token);
+                  }
                   dispatch(setUserData(result.data));
             } catch (err) {
                   console.log(err);
@@ -106,6 +109,9 @@ function Auth({isModel = false}) {
                   
                   const result = await axios.post(ServerUrl + "/api/auth/google",
                         { name: displayName, email: User.email }, { withCredentials: true });
+                  if (result.data.token) {
+                        localStorage.setItem("token", result.data.token);
+                  }
                   dispatch(setUserData(result.data));
             } catch (err) {
                   console.log(err);
@@ -138,6 +144,9 @@ function Auth({isModel = false}) {
 
                   const result = await axios.post(ServerUrl + "/api/auth/google",
                         {name: displayName, email: email}, {withCredentials:true});
+                  if (result.data.token) {
+                        localStorage.setItem("token", result.data.token);
+                  }
                   dispatch(setUserData(result.data));
             } catch (err) {
                   console.log(err);
@@ -166,6 +175,9 @@ function Auth({isModel = false}) {
 
                   const result = await axios.post(ServerUrl + "/api/auth/google",
                         {name: displayName, email: email}, {withCredentials:true});
+                  if (result.data.token) {
+                        localStorage.setItem("token", result.data.token);
+                  }
                   dispatch(setUserData(result.data));
             } catch (err) {
                   console.log(err);

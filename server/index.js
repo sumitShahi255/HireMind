@@ -16,7 +16,7 @@ import evaluationRouter from "./routes/evaluation.route.js";
 
 const app = express();
 app.use(cors({
-  origin: "https://hire-mind-teal.vercel.app",
+  origin: ["https://hire-mind-teal.vercel.app", "http://localhost:5173"],
   credentials: true
 }))
 
