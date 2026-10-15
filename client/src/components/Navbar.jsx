@@ -86,31 +86,52 @@ function Navbar() {
                               setShowCreditPopup(false);
                         }}
                          className='w-10 h-10 bg-linear-to-r from-black to-gray-700 text-white rounded-full flex items-center 
-                         justify-center font-semibold shadow-md hover:scale-105 transition'>
-                              {userData?.name?.[0]?.toUpperCase() || <User size={18}/>}
+                         justify-center font-semibold shadow-md hover:scale-105 transition overflow-hidden border border-gray-200'>
+                              {userData?.avatarUrl ? (
+                                    <img src={userData.avatarUrl} alt={userData.name || "User"} className='w-full h-full object-cover' />
+                              ) : (
+                                    userData?.name?.[0]?.toUpperCase() || <User size={18}/>
+                              )}
                         </button>
 
                         {showUserPopup && (
-                              <div className='absolute right-0 mt-3 w-48 bg-white shadow-xl border 
-                              border-gray-200 rounded-xl p-4 z-50'>
-                                    <p className='text-md text-gray-800 font-semibold mb-3'>{userData?.name || "Guest"}</p>
+                              <div className='absolute right-0 mt-3 w-56 bg-white shadow-xl border 
+                              border-gray-200 rounded-2xl p-4 z-50'>
+                                    <div className='pb-3 mb-2 border-b border-gray-100'>
+                                          <p className='text-sm text-gray-900 font-bold truncate'>{userData?.name || "Guest"}</p>
+                                          <p className='text-xs text-gray-500 truncate'>{userData?.email || ""}</p>
+                                          {userData?.targetRole && (
+                                                <span className='inline-block text-[11px] px-2 py-0.5 mt-1.5 rounded-md bg-emerald-50 text-emerald-700 font-medium truncate max-w-full'>
+                                                      {userData.targetRole}
+                                                </span>
+                                          )}
+                                    </div>
 
-                                    <button  onClick={() => navigate("/history")} 
-                                    className='w-full text-left text-sm py-2 flex items-center gap-2 hover:text-blue-500 transition'>
-                                          <History size={18} />
+                                    <button onClick={() => { setShowUserPopup(false); navigate("/profile"); }}
+                                    className='w-full text-left text-sm py-2 px-2.5 rounded-lg flex items-center gap-2.5 text-gray-700 hover:text-emerald-700 hover:bg-emerald-50/60 transition font-medium'>
+                                          <User size={17} className='text-emerald-600' />
+                                          My Profile
+                                    </button>
+
+                                    <button  onClick={() => { setShowUserPopup(false); navigate("/history"); }} 
+                                    className='w-full text-left text-sm py-2 px-2.5 rounded-lg flex items-center gap-2.5 text-gray-700 hover:text-blue-600 hover:bg-blue-50/60 transition font-medium'>
+                                          <History size={17} className='text-blue-500' />
                                           Interview History
                                     </button>
 
-                                    <button  onClick={() => navigate("/assessment-report")} 
-                                    className='w-full text-left text-sm py-2 flex items-center gap-2 hover:text-indigo-500 transition'>
-                                          <ShieldCheck size={18} />
+                                    <button  onClick={() => { setShowUserPopup(false); navigate("/assessment-report"); }} 
+                                    className='w-full text-left text-sm py-2 px-2.5 rounded-lg flex items-center gap-2.5 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50/60 transition font-medium'>
+                                          <ShieldCheck size={17} className='text-indigo-500' />
                                           Assessment Report
                                     </button>
 
-                                    <button onClick={handleLogout} 
-                                    className='w-full text-left text-sm py-2 flex items-center gap-2 text-red-500'>
-                                          <LogOut size={18} />
-                                    Sign Out</button>
+                                    <div className='pt-2 mt-2 border-t border-gray-100'>
+                                          <button onClick={handleLogout} 
+                                          className='w-full text-left text-sm py-2 px-2.5 rounded-lg flex items-center gap-2.5 text-red-600 hover:bg-red-50/60 transition font-medium'>
+                                                <LogOut size={17} />
+                                                Sign Out
+                                          </button>
+                                    </div>
                               </div>
                         )}
                   </div>

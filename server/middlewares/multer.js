@@ -32,3 +32,30 @@ export const upload = multer({
       storage,
       limits: { fileSize: 5 * 1024 * 1024 },
 });
+
+const avatarStorage = multer.diskStorage({
+      destination: function (req, file, cb) {
+            const destFolder = path.join("public", "avatars");
+            if (!fs.existsSync(destFolder)) {
+                  fs.mkdirSync(destFolder, { recursive: true });
+            }
+            cb(null, destFolder);
+      },
+      filename: function (req, file, cb) {
+            const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+            const filename = `avatar-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+            cb(null, filename);
+      }
+});
+
+export const avatarUpload = multer({
+      storage: avatarStorage,
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (req, file, cb) => {
+            if (file.mimetype.startsWith("image/")) {
+                  cb(null, true);
+            } else {
+                  cb(new Error("Only image files are allowed!"), false);
+            }
+      }
+});

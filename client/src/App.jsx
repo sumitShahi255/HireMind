@@ -13,6 +13,7 @@ import CompanySelection from './pages/coding-interview/CompanySelection';
 import CodingInterview from './pages/coding-interview/CodingInterview';
 import CodingResult from './pages/coding-interview/CodingResult';
 import AssessmentReport from './pages/AssessmentReport';
+import Profile from './pages/Profile';
 
 
 export const ServerUrl = import.meta.env.MODE === "development" ? "http://localhost:8000" : "https://hiremind-0acr.onrender.com"
@@ -23,7 +24,12 @@ function App() {
   useEffect(() => {
     const getUser = async () => {
       try {
-        const result = await axios.get(ServerUrl + "/api/user/current-user", { withCredentials: true })
+        const token = localStorage.getItem("token");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const result = await axios.get(ServerUrl + "/api/user/current-user", { 
+          withCredentials: true,
+          headers 
+        })
         dispatch(setUserData(result.data))
       } catch (error) {
         console.log(error)
@@ -37,6 +43,7 @@ function App() {
     <Routes>
       <Route path='/' element={<Home />} />
       <Route path='/auth' element={<Auth />} />
+      <Route path='/profile' element={<Profile />} />
       <Route path='/interview' element={<InterviewPage />} />
       <Route path='/history' element={<InterviewHistory />} />
       <Route path='/pricing' element={<Pricing />} />
