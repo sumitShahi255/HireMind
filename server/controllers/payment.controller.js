@@ -75,6 +75,7 @@ export const verifyPayment = async(req,res) =>{
                   success : true,
                   message: "Payment verified and credits added",
                   user: updateUser,
+                  creditsAdded: payment.credits,
             });
 
 

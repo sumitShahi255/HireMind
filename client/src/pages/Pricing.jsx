@@ -6,12 +6,14 @@ import axios from 'axios';
 import { ServerUrl } from '../App';
 import { useDispatch } from 'react-redux';
 import { setUserData } from '../redux/userSlice';
+import PaymentSuccessModal from '../components/PaymentSuccessModal';
 
 
 function Pricing() {
   const navigate = useNavigate();
   const [selectedPlan,setSelectedPlan] = useState("free");
   const [loadingPlan, setLoadingPlan] = useState(null);
+  const [successModalData, setSuccessModalData] = useState(null);
   const dispatch = useDispatch();
 
   const plans = [
@@ -77,20 +79,41 @@ function Pricing() {
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: result.data.amount,
-        current: "INR",
+        currency: "INR",
         name: "HireMind",
         description: `${plan.name} - ${plan.credits} Interview Credits`,
         order_id: result.data.id,
 
         handler: async function (response) {
-          const verifyPayment = await axios.post(ServerUrl + "/api/payment/verify",
-            response,{withCredentials:true})
+          try {
+            const verifyPayment = await axios.post(ServerUrl + "/api/payment/verify",
+              response,{withCredentials:true})
 
-            dispatch(setUserData(verifyPayment.data.user))
+            if (verifyPayment.data?.user) {
+              dispatch(setUserData(verifyPayment.data.user))
+            }
 
-          alert("Payment Successful Credits Added!")
+            const creditsAdded = verifyPayment.data?.creditsAdded || plan.credits;
+            const updatedBalance = verifyPayment.data?.user?.credits;
 
-          navigate("/", { replace: true });
+            // Trigger the celebration popup animation!
+            setSuccessModalData({
+              creditsAdded: creditsAdded,
+              planName: plan.name,
+              newBalance: updatedBalance,
+            });
+          } catch (verifyError) {
+            console.error("Payment verification failed", verifyError);
+            alert("Payment verification failed. Please contact support if your amount was deducted.");
+          } finally {
+            setLoadingPlan(null);
+          }
+        },
+
+        modal: {
+          ondismiss: function() {
+            setLoadingPlan(null);
+          }
         },
 
         theme:{
@@ -100,8 +123,6 @@ function Pricing() {
 
       const rzp = new window.Razorpay(options)
       rzp.open()
-
-      setLoadingPlan(null);
 
     } catch (error) {
       console.error(error);
@@ -201,6 +222,18 @@ function Pricing() {
         })}
       </div>
       
+      {/* Payment Success Celebration Modal */}
+      <PaymentSuccessModal
+        isOpen={Boolean(successModalData)}
+        creditsAdded={successModalData?.creditsAdded || 0}
+        planName={successModalData?.planName || ""}
+        newBalance={successModalData?.newBalance}
+        onClose={() => {
+          setSuccessModalData(null);
+          navigate("/", { replace: true });
+        }}
+      />
+
     </div>
   )
 }
