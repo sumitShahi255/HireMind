@@ -819,8 +819,10 @@ Return ONLY a valid JSON object in this format:
     const rawQuality = typeof evaluation.qualityScore === 'number' ? evaluation.qualityScore : parseInt(evaluation.qualityScore) || 50;
     let finalQuestionScore = Math.round((correctnessRatio * 80) + (rawQuality * 0.2));
     
-    const cleanUserCode = (userCode || "").replace(/\s+/g, '');
-    const cleanTemplate = (question.codeTemplate || "").replace(/\s+/g, '');
+    const langKey = getTemplateLanguageKey(language);
+    const startingTemplate = question.codeTemplates?.[langKey] || question.codeTemplate || "";
+    const cleanUserCode = (code || question.userCode || "").replace(/\s+/g, '');
+    const cleanTemplate = (startingTemplate || "").replace(/\s+/g, '');
     
     if (cleanUserCode === cleanTemplate || cleanUserCode === "") {
       finalQuestionScore = 0;
