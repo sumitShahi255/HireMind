@@ -4,7 +4,7 @@ import { Sparkles, Wallet, User, History, LogOut, ShieldCheck } from "lucide-rea
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios  from 'axios';
-import { ServerUrl } from '../App';
+import { ServerUrl, getMediaUrl } from '../App';
 import { setUserData } from '../redux/userSlice';
 import AuthModel from './AuthModel';
 
@@ -16,6 +16,7 @@ function Navbar() {
       const navigate = useNavigate()
       const dispatch = useDispatch()
       const [showAuth,setShowAuth] = useState(false)
+      const [avatarError, setAvatarError] = useState(false)
 
       const handleLogout = async () => {
             try {
@@ -87,8 +88,13 @@ function Navbar() {
                         }}
                          className='w-10 h-10 bg-linear-to-r from-black to-gray-700 text-white rounded-full flex items-center 
                          justify-center font-semibold shadow-md hover:scale-105 transition overflow-hidden border border-gray-200'>
-                              {userData?.avatarUrl ? (
-                                    <img src={userData.avatarUrl} alt={userData.name || "User"} className='w-full h-full object-cover' />
+                              {userData?.avatarUrl && !avatarError ? (
+                                    <img 
+                                      src={userData.avatarUrl.startsWith("data:") ? userData.avatarUrl : getMediaUrl(userData.avatarUrl)} 
+                                      alt={userData.name || "User"} 
+                                      onError={() => setAvatarError(true)}
+                                      className='w-full h-full object-cover' 
+                                    />
                               ) : (
                                     userData?.name?.[0]?.toUpperCase() || <User size={18}/>
                               )}

@@ -1,7 +1,7 @@
-import { ArrowLeft } from "lucide-react";
-import { useEffect } from "react";
+import { ArrowLeft, X, Maximize2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { buildStyles, CircularProgressbar } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -10,10 +10,12 @@ import autoTable from "jspdf-autotable";
 import ExplainableEvaluation from "./ExplainableEvaluation";
 import SkillGapAnalysis from "./SkillGapAnalysis";
 import CandidateRoadmap from "./CandidateRoadmap";
+import { getMediaUrl } from "../App";
 
 function Step3Report({ report }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [selectedSnapshot, setSelectedSnapshot] = useState(null);
 
   useEffect(() => {
     window.speechSynthesis.cancel();
@@ -340,9 +342,14 @@ function Step3Report({ report }) {
                 <h4 className="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-4">Video Segments</h4>
                 <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
                   {[...report.recordings.videoChunks].sort((a, b) => a.sequenceNumber - b.sequenceNumber).map((chunk, idx) => (
-                    <div key={idx} className="flex-shrink-0 w-64 bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
-                      <video src={chunk.url.replace('6000', '8000')} controls className="w-full h-36 object-cover bg-black" />
-                      <div className="p-3">
+                    <div key={idx} className="flex-shrink-0 w-64 bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
+                      <video 
+                        src={getMediaUrl(chunk.url)} 
+                        controls 
+                        preload="metadata"
+                        className="w-full h-36 object-cover bg-black" 
+                      />
+                      <div className="p-3 bg-white">
                         <span className="text-xs font-bold text-gray-700">Segment {chunk.sequenceNumber}</span>
                         <span className="block text-[10px] text-gray-400 mt-0.5">{new Date(chunk.timestamp).toLocaleTimeString()}</span>
                       </div>
@@ -357,9 +364,23 @@ function Step3Report({ report }) {
                 <h4 className="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-4">Periodic Snapshots</h4>
                 <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
                   {[...report.recordings.snapshots].sort((a, b) => a.sequenceNumber - b.sequenceNumber).map((snap, idx) => (
-                    <div key={idx} className="flex-shrink-0 w-48 bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
-                      <img src={snap.url.replace('6000', '8000')} alt={`Snapshot ${snap.sequenceNumber}`} className="w-full h-32 object-cover" />
-                      <div className="p-3">
+                    <div 
+                      key={idx} 
+                      onClick={() => setSelectedSnapshot({ url: getMediaUrl(snap.url), seq: snap.sequenceNumber, time: snap.timestamp })}
+                      className="group relative flex-shrink-0 w-48 bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg hover:border-blue-400 transition"
+                    >
+                      <div className="relative w-full h-32 bg-gray-900 overflow-hidden">
+                        <img 
+                          src={getMediaUrl(snap.url)} 
+                          alt={`Snapshot ${snap.sequenceNumber}`} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300" 
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                          <Maximize2 className="w-5 h-5 drop-shadow" />
+                        </div>
+                      </div>
+                      <div className="p-3 bg-white">
                         <span className="text-xs font-bold text-gray-700">Snapshot {snap.sequenceNumber}</span>
                         <span className="block text-[10px] text-gray-400 mt-0.5">{new Date(snap.timestamp).toLocaleTimeString()}</span>
                       </div>
@@ -372,6 +393,47 @@ function Step3Report({ report }) {
             {!report?.recordings?.videoChunks?.length && !report?.recordings?.snapshots?.length && (
               <p className="text-gray-500 italic text-sm">No proctoring media recorded for this session.</p>
             )}
+
+            {/* Modal for Snapshot Preview */}
+            <AnimatePresence>
+              {selectedSnapshot && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+                  onClick={() => setSelectedSnapshot(null)}
+                >
+                  <motion.div 
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    className="relative max-w-3xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-between p-4 border-b border-gray-100">
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-800">Snapshot {selectedSnapshot.seq}</h4>
+                        <p className="text-[11px] text-gray-500">{new Date(selectedSnapshot.time).toLocaleTimeString()}</p>
+                      </div>
+                      <button 
+                        onClick={() => setSelectedSnapshot(null)}
+                        className="p-1 rounded-full hover:bg-gray-100 text-gray-500 transition"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <div className="p-2 bg-black flex items-center justify-center max-h-[75vh]">
+                      <img 
+                        src={selectedSnapshot.url} 
+                        alt={`Snapshot ${selectedSnapshot.seq}`} 
+                        className="max-h-[70vh] w-auto object-contain rounded"
+                      />
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
           <motion.div
             initial={{ opacity: 0 }}

@@ -1,3 +1,4 @@
+import fs from "fs";
 import User from "../models/user.model.js";
 import Interview from "../models/dynamicInterview.model.js";
 import CodingInterview from "../models/codingInterview.model.js";
@@ -96,15 +97,26 @@ export const getUserStats = async (req, res) => {
 
 export const uploadAvatar = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No image file provided" });
+    const userId = req.userId;
+    let avatarUrl = req.body?.avatarBase64;
+
+    if (!avatarUrl && req.file) {
+      try {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const mime = req.file.mimetype || "image/jpeg";
+        avatarUrl = `data:${mime};base64,${fileBuffer.toString("base64")}`;
+      } catch (e) {
+        console.error("Failed to read avatar buffer:", e);
+        const baseUrl = process.env.SERVER_URL || (process.env.NODE_ENV === "production"
+          ? "https://hiremind-0acr.onrender.com"
+          : `http://localhost:${process.env.PORT || 8000}`);
+        avatarUrl = `${baseUrl}/public/avatars/${req.file.filename}`;
+      }
     }
 
-    const userId = req.userId;
-    const baseUrl = process.env.NODE_ENV === "production"
-      ? "https://hiremind-0acr.onrender.com"
-      : `http://localhost:${process.env.PORT || 8000}`;
-    const avatarUrl = `${baseUrl}/public/avatars/${req.file.filename}`;
+    if (!avatarUrl) {
+      return res.status(400).json({ message: "No image file provided" });
+    }
 
     const user = await User.findByIdAndUpdate(
       userId,

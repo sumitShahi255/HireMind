@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { ServerUrl } from "../../App";
+import { ServerUrl, getMediaUrl } from "../../App";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import {ResponsiveContainer,BarChart,Bar,XAxis,YAxis,Tooltip,Cell } from "recharts";
-import {CheckCircle,XCircle,Cpu,Clock,Sparkles,AlertTriangle,Code,FileSpreadsheet,RotateCcw,ArrowLeft } from "lucide-react";
+import {CheckCircle,XCircle,Cpu,Clock,Sparkles,AlertTriangle,Code,FileSpreadsheet,RotateCcw,ArrowLeft, X, Maximize2 } from "lucide-react";
 import ExplainableEvaluation from "../../components/ExplainableEvaluation";
 import SkillGapAnalysis from "../../components/SkillGapAnalysis";
 import CandidateRoadmap from "../../components/CandidateRoadmap";
@@ -18,6 +18,7 @@ function CodingResult() {
 
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedSnapshot, setSelectedSnapshot] = useState(null);
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState(["", "", "", "", ""]);
   const [evaluating, setEvaluating] = useState(false);
@@ -319,9 +320,14 @@ function CodingResult() {
                 <h3 className="text-sm font-extrabold text-gray-400 uppercase tracking-wider mb-4">Video Segments</h3>
                 <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
                   {[...report.recordings.videoChunks].sort((a,b) => a.sequenceNumber - b.sequenceNumber).map((chunk, idx) => (
-                    <div key={idx} className="flex-shrink-0 w-64 bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
-                      <video src={chunk.url.replace('6000', '8000')} controls className="w-full h-36 object-cover bg-black" />
-                      <div className="p-3">
+                    <div key={idx} className="flex-shrink-0 w-64 bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
+                      <video 
+                        src={getMediaUrl(chunk.url)} 
+                        controls 
+                        preload="metadata"
+                        className="w-full h-36 object-cover bg-black" 
+                      />
+                      <div className="p-3 bg-white">
                         <span className="text-xs font-bold text-gray-700">Segment {chunk.sequenceNumber}</span>
                         <span className="block text-[10px] text-gray-400 mt-0.5">{new Date(chunk.timestamp).toLocaleTimeString()}</span>
                       </div>
@@ -336,14 +342,61 @@ function CodingResult() {
                 <h3 className="text-sm font-extrabold text-gray-400 uppercase tracking-wider mb-4">Periodic Snapshots</h3>
                 <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
                   {[...report.recordings.snapshots].sort((a,b) => a.sequenceNumber - b.sequenceNumber).map((snap, idx) => (
-                    <div key={idx} className="flex-shrink-0 w-48 bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
-                      <img src={snap.url.replace('6000', '8000')} alt={`Snapshot ${snap.sequenceNumber}`} className="w-full h-32 object-cover" />
-                      <div className="p-3">
+                    <div 
+                      key={idx} 
+                      onClick={() => setSelectedSnapshot({ url: getMediaUrl(snap.url), seq: snap.sequenceNumber, time: snap.timestamp })}
+                      className="group relative flex-shrink-0 w-48 bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg hover:border-blue-400 transition"
+                    >
+                      <div className="relative w-full h-32 bg-gray-900 overflow-hidden">
+                        <img 
+                          src={getMediaUrl(snap.url)} 
+                          alt={`Snapshot ${snap.sequenceNumber}`} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300" 
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                          <Maximize2 className="w-5 h-5 drop-shadow" />
+                        </div>
+                      </div>
+                      <div className="p-3 bg-white">
                         <span className="text-xs font-bold text-gray-700">Snapshot {snap.sequenceNumber}</span>
                         <span className="block text-[10px] text-gray-400 mt-0.5">{new Date(snap.timestamp).toLocaleTimeString()}</span>
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Modal for Snapshot Preview */}
+            {selectedSnapshot && (
+              <div 
+                className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+                onClick={() => setSelectedSnapshot(null)}
+              >
+                <div 
+                  className="relative max-w-3xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between p-4 border-b border-gray-100">
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-800">Snapshot {selectedSnapshot.seq}</h4>
+                      <p className="text-[11px] text-gray-500">{new Date(selectedSnapshot.time).toLocaleTimeString()}</p>
+                    </div>
+                    <button 
+                      onClick={() => setSelectedSnapshot(null)}
+                      className="p-1 rounded-full hover:bg-gray-100 text-gray-500 transition"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="p-2 bg-black flex items-center justify-center max-h-[75vh]">
+                    <img 
+                      src={selectedSnapshot.url} 
+                      alt={`Snapshot ${selectedSnapshot.seq}`} 
+                      className="max-h-[70vh] w-auto object-contain rounded"
+                    />
+                  </div>
                 </div>
               </div>
             )}

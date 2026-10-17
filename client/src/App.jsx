@@ -16,7 +16,23 @@ import AssessmentReport from './pages/AssessmentReport';
 import Profile from './pages/Profile';
 
 
-export const ServerUrl = import.meta.env.MODE === "development" ? "http://localhost:8000" : "https://hiremind-0acr.onrender.com"
+export const ServerUrl = import.meta.env.MODE === "development" ? "http://localhost:8000" : "https://hiremind-0acr.onrender.com";
+
+export const getMediaUrl = (url) => {
+  if (!url || typeof url !== "string") return "";
+  const normalized = url.replace(/\\/g, "/");
+  const publicIndex = normalized.indexOf("/public/");
+  if (publicIndex !== -1) {
+    return `${ServerUrl}${normalized.substring(publicIndex)}`;
+  }
+  if (normalized.startsWith("public/")) {
+    return `${ServerUrl}/${normalized}`;
+  }
+  if (normalized.includes("localhost:6000")) {
+    return normalized.replace("localhost:6000", ServerUrl.replace(/^https?:\/\//, ""));
+  }
+  return normalized;
+};
 
 function App() {
 

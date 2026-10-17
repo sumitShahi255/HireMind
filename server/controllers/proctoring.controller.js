@@ -27,8 +27,11 @@ export const uploadProctoringChunk = async (req, res) => {
     }
 
     // Convert local public path to URL accessible path (handle Windows backslashes)
-    const relativePath = file.path.replace(/\\/g, "/");
-    const fileUrl = `${process.env.SERVER_URL || 'https://hiremind-0acr.onrender.com'}/${relativePath}`;
+    const relativePath = file.path.replace(/\\/g, "/").replace(/^\/+/, "");
+    const baseUrl = process.env.SERVER_URL || (process.env.NODE_ENV === "production"
+      ? "https://hiremind-0acr.onrender.com"
+      : `http://localhost:${process.env.PORT || 8000}`);
+    const fileUrl = `${baseUrl}/${relativePath}`;
 
     // Idempotency check: see if chunk with same sequenceNumber and type already exists
     let existingChunk = null;

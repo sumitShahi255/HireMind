@@ -14,6 +14,12 @@ import dynamicInterviewRouter from "./routes/dynamicInterview.route.js";
 import evaluationRouter from "./routes/evaluation.route.js";
 
 
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 app.use(cors({
   origin: ["https://hire-mind-teal.vercel.app", "http://localhost:5173"],
@@ -22,7 +28,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(cookieParser());
-app.use("/public", express.static("public"));
+app.use("/public", express.static(path.join(__dirname, "public")));
 
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);

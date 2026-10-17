@@ -34,8 +34,41 @@ import {
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import Navbar from "../components/Navbar";
 import AuthModel from "../components/AuthModel";
-import { ServerUrl } from "../App";
+import { ServerUrl, getMediaUrl } from "../App";
 import { setUserData } from "../redux/userSlice";
+
+const compressImage = (file, maxSize = 400, quality = 0.85) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxSize) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => resolve(e.target.result);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(URL.createObjectURL(file));
+    reader.readAsDataURL(file);
+  });
+};
 
 const AVATAR_PRESETS = [
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4",
@@ -114,6 +147,7 @@ export default function Profile() {
   const [portfolioUrl, setPortfolioUrl] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Sync state when userData loads
   useEffect(() => {
@@ -130,6 +164,7 @@ export default function Profile() {
       setLinkedinUrl(userData.linkedinUrl || "");
       setPortfolioUrl(userData.portfolioUrl || "");
       setAvatarUrl(userData.avatarUrl || "");
+      setImageError(false);
     }
   }, [userData]);
 
@@ -198,21 +233,24 @@ export default function Profile() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMessage("Image size must be less than 5MB.");
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMessage("Image size must be less than 10MB.");
       return;
     }
 
-    // Instant local preview
-    const previewUrl = URL.createObjectURL(file);
-    setAvatarUrl(previewUrl);
-
-    // Upload to server
     setUploadingAvatar(true);
     setErrorMessage("");
+    setImageError(false);
+
     try {
+      // Compress to lightweight square avatar data URI (~35-60KB)
+      const compressedDataUrl = await compressImage(file, 400, 0.85);
+      setAvatarUrl(compressedDataUrl);
+
+      // Upload to server (sending both base64 and original file)
       const formData = new FormData();
       formData.append("avatar", file);
+      formData.append("avatarBase64", compressedDataUrl);
 
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -233,7 +271,7 @@ export default function Profile() {
     } catch (err) {
       console.error("Avatar upload failed:", err);
       setErrorMessage(
-        err.response?.data?.message || "Failed to upload photo to server. You can still save profile."
+        err.response?.data?.message || "Failed to upload photo to server."
       );
     } finally {
       setUploadingAvatar(false);
@@ -245,6 +283,7 @@ export default function Profile() {
 
   const handleRemoveAvatar = async () => {
     setAvatarUrl("");
+    setImageError(false);
     try {
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -255,11 +294,11 @@ export default function Profile() {
       );
       if (res.data && res.data.user) {
         dispatch(setUserData(res.data.user));
-        setSuccessMessage("Photo removed. Initials will be used.");
-        setTimeout(() => setSuccessMessage(""), 3000);
       }
+      setSuccessMessage("Profile photo removed. Initial avatar active.");
+      setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
-      console.log(err);
+      console.error("Remove avatar failed:", err);
     }
   };
 
@@ -444,10 +483,11 @@ export default function Profile() {
                         <Loader2 size={24} className="animate-spin" />
                         <span className="text-[10px] font-semibold">Uploading...</span>
                       </div>
-                    ) : avatarUrl ? (
+                    ) : (avatarUrl && !imageError) ? (
                       <img
-                        src={avatarUrl}
+                        src={avatarUrl.startsWith("data:") ? avatarUrl : getMediaUrl(avatarUrl)}
                         alt={name}
+                        onError={() => setImageError(true)}
                         className="w-full h-full object-cover rounded-xl bg-gray-50"
                       />
                     ) : (
