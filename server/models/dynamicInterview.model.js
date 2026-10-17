@@ -34,11 +34,17 @@ const questionSchema = new mongoose.Schema({
     strengths: [String],
     weaknesses: [String],
     missingConcepts: [String],
+    followUpOpportunity: { type: Boolean, default: false },
+    suggestedFollowUpAngle: { type: String, default: "" },
     summary: String,
   },
   isFollowUp: {
     type: Boolean,
     default: false,
+  },
+  // Topic the backend assigned (ground truth for rotation enforcement)
+  assignedTopic: {
+    type: String,
   },
   askedAt: {
     type: Date,
@@ -47,6 +53,16 @@ const questionSchema = new mongoose.Schema({
     type: Date,
   },
 });
+
+// One entry per planned topic in the current interview session
+const topicPlanEntrySchema = new mongoose.Schema({
+  topic: { type: String, required: true },
+  subtopicsTested: [String],   // subtopics already asked for this topic
+  timesAsked: { type: Number, default: 0 },
+  isWeak: { type: Boolean, default: false },
+  category: { type: String, default: "general" },
+  context: { type: String, default: "" },
+}, { _id: false });
 
 const interviewSchema = new mongoose.Schema(
   {
@@ -83,8 +99,14 @@ const interviewSchema = new mongoose.Schema(
     skills: [String],
     interviewConfig: {
       minQuestions: { type: Number, default: 5 },
-      maxQuestions: { type: Number, default: 5 },
+      maxQuestions: { type: Number, default: 10 },
     },
+    // Persistent topic plan — built once at interview start, never regenerated
+    topicPlan: [topicPlanEntrySchema],
+    // Pointer to the next main (non-follow-up) topic in topicPlan
+    topicPlanIndex: { type: Number, default: 0 },
+    // How many consecutive follow-ups have been issued for the current topic
+    consecutiveFollowUps: { type: Number, default: 0 },
     questions: [questionSchema],
     finalScore: {
       type: Number,

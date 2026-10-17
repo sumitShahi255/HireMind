@@ -1,3 +1,22 @@
+/**
+ * dynamicInterview.controller.js
+ *
+ * Central controller for the dynamic AI interview system.
+ *
+ * FLOW OVERVIEW:
+ *  startDynamicInterview  — builds topic plan, generates Q1, persists interview
+ *  submitDynamicAnswer    — evaluates answer, selects next topic via plan, generates Qn+1
+ *  finishDynamicInterview — marks interview complete, computes final score
+ *
+ * TOPIC SELECTION PRINCIPLES:
+ *  - Topic plan is built ONCE at interview start and persisted in the DB.
+ *  - The plan uses cross-interview history to prefer under-tested topics.
+ *  - Weak answers record weaknesses but do NOT repeat the same topic immediately.
+ *  - At most ONE consecutive follow-up per topic is allowed.
+ *  - The AI receives the assigned topic and must return it in the "topic" field.
+ *  - Response is validated; one retry is attempted on mismatch before fallback.
+ */
+
 import fs from "fs";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import { askAi } from "../services/groq.service.js";
@@ -5,55 +24,69 @@ import Interview from "../models/dynamicInterview.model.js";
 import User from "../models/user.model.js";
 import Resume from "../models/resume.model.js";
 import crypto from "crypto";
+
 import { generateNextQuestion } from "../services/interview/questionGenerator.service.js";
 import { evaluateAnswer } from "../services/evaluation/answerEvaluator.service.js";
-import { updateResumeMastery, selectTopic } from "../services/interview/interviewPlanner.service.js";
+import {
+  buildTopicPlan,
+  selectNextTopic,
+  decideFollowUp,
+  updateResumeMastery,
+  buildCompactHistory,
+  getStage,
+  getAdaptiveDifficulty,
+  normalizeTopic,
+} from "../services/interview/interviewPlanner.service.js";
 import { hrTopicSelector } from "../services/interview/hrTopicSelector.service.js";
 
-const getStage = (questionNumber) => {
-  if (questionNumber <= 2) return "Foundation";
-  if (questionNumber <= 5) return "Practical Application";
-  if (questionNumber <= 8) return "Deep Dive";
-  return "Challenge";
-};
+const MAX_QUESTIONS = 10;
 
-const getAdaptiveDifficulty = (topicMastery, stage) => {
-  if (!topicMastery || topicMastery.attempts === 0) {
-    if (stage === "Foundation") return 1;
-    if (stage === "Practical Application") return 2;
-    if (stage === "Deep Dive") return 3;
-    return 4;
-  }
-  // Use the database's progressively tracked currentLevel (1 to 5) instead of jumping based on averageScore alone.
-  // This ensures a gradual step-by-step increase (1 -> 2 -> 3) over multiple attempts.
-  let baseDiff = topicMastery.currentLevel || 1;
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-  let diff = baseDiff;
-  if (stage === "Challenge") diff = Math.min(5, baseDiff + 1);
-  if (stage === "Foundation") diff = Math.max(1, baseDiff - 1);
-  
-  return diff;
-};
+/**
+ * Fetch the two most recent completed interviews for this resume+mode.
+ * Used both for compact history (prompt context) and for building the topic plan.
+ */
+const getPreviousInterviews = async (userId, resumeId, mode, excludeInterviewId = null) => {
+  const query = { userId, resumeId, mode, status: "Completed" };
+  if (excludeInterviewId) query._id = { $ne: excludeInterviewId };
 
-const getCompactHistory = async (userId, resumeId, mode) => {
-  const pastInterviews = await Interview.find({ userId, resumeId, mode, status: "Completed" })
+  return Interview.find(query)
     .sort({ createdAt: -1 })
-    .limit(2);
-  
-  if (!pastInterviews || pastInterviews.length === 0) return "";
+    .limit(2)
+    .lean();
+};
 
-  let compactHistory = "";
-  pastInterviews.forEach((interview, index) => {
-    compactHistory += `\n--- Past Interview ${index + 1} ---\n`;
-    compactHistory += `Strengths: ${interview.strengths?.join(", ") || "None"}\n`;
-    compactHistory += `Weaknesses: ${interview.weaknesses?.join(", ") || "None"}\n`;
-    compactHistory += `Questions Asked:\n`;
-    interview.questions.forEach(q => {
-      compactHistory += `- [Diff: ${q.difficulty}, Topic: ${q.topic}] ${q.questionText}\n`;
+/**
+ * Compute the final score and aggregate strengths/weaknesses from all questions.
+ */
+const computeFinalStats = (questions) => {
+  let totalScore = 0;
+  const allStrengths = [];
+  const allWeaknesses = [];
+
+  questions.forEach((q) => {
+    const avg =
+      ((q.evaluation?.confidence || 0) +
+        (q.evaluation?.communication || 0) +
+        (q.evaluation?.correctness || 0)) / 3;
+    totalScore += avg;
+    (q.evaluation?.strengths || []).forEach((s) => {
+      if (!allStrengths.includes(s)) allStrengths.push(s);
+    });
+    (q.evaluation?.weaknesses || []).forEach((w) => {
+      if (!allWeaknesses.includes(w)) allWeaknesses.push(w);
     });
   });
-  return compactHistory;
+
+  return {
+    finalScore: questions.length > 0 ? Math.round(totalScore / questions.length) : 0,
+    strengths: allStrengths,
+    weaknesses: allWeaknesses,
+  };
 };
+
+// ─── startDynamicInterview ────────────────────────────────────────────────────
 
 export const startDynamicInterview = async (req, res) => {
   try {
@@ -68,15 +101,13 @@ export const startDynamicInterview = async (req, res) => {
     }
 
     const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     if (user.credits < 50) {
       return res.status(403).json({ message: "Not enough credits. Minimum 50 required." });
     }
 
-    // 1. Resume Hash and Identity
+    // 1. Resume identity
     const safeResume = resumeText?.trim() || "None";
     const resumeHash = crypto.createHash("sha256").update(safeResume).digest("hex");
 
@@ -87,27 +118,40 @@ export const startDynamicInterview = async (req, res) => {
         resumeHash,
         resumeText: safeResume,
         skills: skills || [],
-        projects: projects || []
+        projects: projects || [],
       });
     }
 
-    // 2. Fetch Compact History
-    const compactHistory = await getCompactHistory(req.userId, resume._id, mode);
-    
-    // 3. Determine Q1 Stage and Difficulty
-    const stage = "Foundation";
-    
-    const masteryMap = (mode === "TECHNICAL" || mode === "Technical") ? resume.technicalMastery : resume.hrMastery;
-    const q1Topic = selectTopic(resume, masteryMap, stage, [], mode);
-    
-    let targetDifficulty = 1;
-    if (q1Topic && masteryMap) {
-       const safeTopic = q1Topic.replace(/\./g, '_');
-       const topicMastery = masteryMap.get(safeTopic);
-       targetDifficulty = getAdaptiveDifficulty(topicMastery, stage);
+    // 2. Fetch previous interview history (for plan rotation + compact history)
+    const previousInterviews = await getPreviousInterviews(req.userId, resume._id, mode);
+    const compactHistory = buildCompactHistory(previousInterviews);
+
+    // 3. Build the topic plan ONCE — persisted with the interview document
+    const topicPlan = buildTopicPlan(resume, mode, previousInterviews);
+
+    if (topicPlan.length === 0) {
+      console.warn("[startDynamicInterview] Topic plan is empty — resume may have no skills/projects");
     }
 
-    // Generate Q1
+    console.log(`[startDynamicInterview] Topic plan for mode=${mode}: ${topicPlan.map((e) => e.topic).join(" → ")}`);
+
+    // 4. First question — always the first planned topic
+    const firstPlanEntry = topicPlan[0];
+    const assignedTopic = firstPlanEntry?.topic || "General Technical Concepts";
+    const assignedContext = firstPlanEntry?.context || "";
+    const assignedCategory = firstPlanEntry?.category || "general";
+    const stage = getStage(1);
+
+    const masteryMap = (mode === "TECHNICAL" || mode === "Technical")
+      ? resume.technicalMastery
+      : resume.hrMastery;
+
+    const safeTopic = normalizeTopic(assignedTopic).replace(/\//g, "_");
+    const topicMastery = masteryMap?.get(safeTopic);
+    const targetDifficulty = getAdaptiveDifficulty(topicMastery, stage);
+
+    console.log(`[startDynamicInterview] Q1 — assignedTopic: "${assignedTopic}", difficulty: ${targetDifficulty}, stage: ${stage}`);
+
     const nextQuestionObj = await generateNextQuestion({
       role,
       experience,
@@ -117,8 +161,9 @@ export const startDynamicInterview = async (req, res) => {
       skills,
       stage,
       targetDifficulty,
-      targetTopicFocus: q1Topic,
-      resumeFocusArea: "Focus specifically on testing this exact topic.",
+      assignedTopic,
+      assignedContext,
+      assignedCategory,
       compactHistory,
       previousQuestions: [],
     });
@@ -131,14 +176,15 @@ export const startDynamicInterview = async (req, res) => {
       subtopic: nextQuestionObj.subtopic,
       category: nextQuestionObj.category,
       difficulty: nextQuestionObj.difficulty,
+      assignedTopic,
       askedAt: new Date(),
     };
 
-    // Deduct credits
+    // 5. Deduct credits
     user.credits -= 50;
     await user.save();
 
-    // Create Interview
+    // 6. Create the interview with the persistent topic plan
     const interview = await Interview.create({
       userId: user._id,
       candidateName: userName || user?.name || "Candidate",
@@ -149,6 +195,9 @@ export const startDynamicInterview = async (req, res) => {
       resumeText: safeResume,
       projects: projects || [],
       skills: skills || [],
+      topicPlan,
+      topicPlanIndex: 1, // Q1 consumed index 0, next main question starts at 1
+      consecutiveFollowUps: 0,
       questions: [newQuestion],
     });
 
@@ -163,6 +212,8 @@ export const startDynamicInterview = async (req, res) => {
     return res.status(500).json({ message: `failed to start dynamic interview ${error}` });
   }
 };
+
+// ─── submitDynamicAnswer ──────────────────────────────────────────────────────
 
 export const submitDynamicAnswer = async (req, res) => {
   try {
@@ -181,6 +232,7 @@ export const submitDynamicAnswer = async (req, res) => {
     if (proctoringLogs !== undefined) interview.proctoringLogs = proctoringLogs;
     if (totalDetections !== undefined) interview.totalDetections = totalDetections;
 
+    // Default evaluation for blank/skipped answers
     let evaluationResult = {
       confidence: 0,
       communication: 0,
@@ -190,90 +242,111 @@ export const submitDynamicAnswer = async (req, res) => {
       strengths: [],
       weaknesses: [],
       missingConcepts: [],
+      followUpOpportunity: false,
+      suggestedFollowUpAngle: "",
       summary: "No answer provided.",
     };
 
     const resume = await Resume.findById(interview.resumeId);
 
-    // 1. Evaluate answer using existing Groq
+    // 1. Evaluate answer
     if (answer) {
       evaluationResult = await evaluateAnswer(question.questionText, answer, interview.mode);
-      
-      // 3. Update topic-specific mastery
-      await updateResumeMastery(resume, interview.mode, question.topic, evaluationResult);
+
+      // 2. Update mastery — note subtopic is also passed now
+      await updateResumeMastery(
+        resume,
+        interview.mode,
+        question.assignedTopic || question.topic,
+        question.subtopic,
+        evaluationResult,
+        interview
+      );
     }
     question.evaluation = evaluationResult;
 
-    // 4. Check 10 questions limit
+    // ─ Check question budget ─
     const questionsCount = interview.questions.length;
-    let isFinished = false;
-
-    if (questionsCount >= 10) {
-      isFinished = true;
-    }
-
+    let isFinished = questionsCount >= MAX_QUESTIONS;
     let nextQuestion = null;
 
     if (!isFinished) {
-      // 5. Determine next stage
-      const nextStage = getStage(questionsCount + 1);
-
-      // 6. Determine Topic Focus using the AI/controller logic
       const isHR = interview.mode === "HR" || interview.mode === "Hr";
       const masteryMap = !isHR ? resume.technicalMastery : resume.hrMastery;
-      
-      let topicFocus = "";
-      let isFollowUp = false;
-      let followUpAngle = null;
 
-      if (isHR) {
-        const hrSelection = hrTopicSelector(resume, questionsCount + 1, interview.questions, evaluationResult);
-        topicFocus = hrSelection.topic;
-        isFollowUp = hrSelection.isFollowUp;
-        followUpAngle = hrSelection.followUpAngle;
+      // ─ Follow-up decision (enforces max-1-consecutive rule) ─
+      const { isFollowUp, followUpAngle } = decideFollowUp(interview, evaluationResult, answer);
+
+      let assignedTopic;
+      let assignedContext = "";
+      let assignedCategory = "general";
+      let newPlanIndex = interview.topicPlanIndex;
+      let bannedSubtopics = [];
+
+      if (isFollowUp) {
+        // Follow-up: stay on the same topic
+        assignedTopic = question.assignedTopic || question.topic;
+        interview.consecutiveFollowUps = (interview.consecutiveFollowUps || 0) + 1;
+
+        // Suggest a different subtopic for the follow-up
+        const planEntry = interview.topicPlan.find(
+          (e) => normalizeTopic(e.topic) === normalizeTopic(assignedTopic)
+        );
+        bannedSubtopics = planEntry?.subtopicsTested || [];
+        assignedContext = planEntry?.context || "";
+        assignedCategory = planEntry?.category || "general";
+
+        console.log(`[submitDynamicAnswer] FollowUp on "${assignedTopic}" (consecutive #${interview.consecutiveFollowUps}) | bannedSubtopics: [${bannedSubtopics.join(", ")}]`);
       } else {
-        topicFocus = selectTopic(resume, masteryMap, nextStage, interview.questions, interview.mode);
+        // Main question — advance plan
+        interview.consecutiveFollowUps = 0;
 
-        // WEAK TOPIC KNOWLEDGE VERIFICATION RULE (Rule 2)
-        if (evaluationResult) {
-           const currentAnswerScore = (evaluationResult.confidence + evaluationResult.communication + evaluationResult.correctness) / 3;
-           if (currentAnswerScore <= 4.0) {
-              const timesAskedThisTopic = interview.questions.filter(q => q.topic === question.topic).length;
-              if (timesAskedThisTopic < 3) {
-                  topicFocus = question.topic;
-                  isFollowUp = true;
-                  followUpAngle = "The candidate struggled heavily with the previous question. Ask a slightly simpler, foundational question on this EXACT SAME topic to verify if they have basic beginner knowledge.";
-              }
-           }
+        if (isHR) {
+          const hrResult = hrTopicSelector(interview, interview.questions);
+          assignedTopic = hrResult.topic;
+          assignedCategory = "hr";
+          if (hrResult.planIndex >= 0) newPlanIndex = hrResult.planIndex + 1;
+        } else {
+          const planResult = selectNextTopic(interview, masteryMap);
+          assignedTopic = planResult.topic;
+          assignedContext = planResult.context || "";
+          assignedCategory = planResult.category || "general";
+          newPlanIndex = planResult.planIndex + 1;
         }
+
+        // Collect banned subtopics for the newly selected topic
+        const planEntry = interview.topicPlan.find(
+          (e) => normalizeTopic(e.topic) === normalizeTopic(assignedTopic)
+        );
+        bannedSubtopics = planEntry?.subtopicsTested || [];
+        if (!assignedContext && planEntry?.context) assignedContext = planEntry.context;
+        if (!assignedCategory && planEntry?.category) assignedCategory = planEntry.category;
+
+        console.log(`[submitDynamicAnswer] Main Q — assignedTopic: "${assignedTopic}" | planIndex: ${newPlanIndex} | bannedSubtopics: [${bannedSubtopics.join(", ")}]`);
       }
 
-      // 7. Determine difficulty (Topic-specific)
-      let targetTopicMastery = null;
-      let targetDifficulty = 1;
+      interview.topicPlanIndex = newPlanIndex;
 
-      if (topicFocus) {
-         const safeTopic = topicFocus.replace(/\./g, '_');
-         const topicMastery = masteryMap.get(safeTopic);
-         
-         if (topicMastery) {
-            targetTopicMastery = {
-                demonstrated: topicMastery.demonstrated || [],
-                weakAreas: topicMastery.weakAreas || [],
-            };
-         }
-         
-         targetDifficulty = getAdaptiveDifficulty(topicMastery, nextStage);
-      } else {
-         targetDifficulty = getAdaptiveDifficulty(null, nextStage);
-      }
+      // ─ Determine stage and difficulty ─
+      const nextStage = getStage(questionsCount + 1);
+      const safeTopic = normalizeTopic(assignedTopic).replace(/\//g, "_");
+      const topicMastery = masteryMap?.get(safeTopic);
 
-      // 7.5 Determine Resume Focus Area based on what selectTopic picked
-      let resumeFocusArea = "Focus specifically on testing this exact topic.";
+      const targetTopicMastery = topicMastery
+        ? { demonstrated: topicMastery.demonstrated || [], weakAreas: topicMastery.weakAreas || [] }
+        : null;
+      const targetDifficulty = getAdaptiveDifficulty(topicMastery, nextStage);
 
-      const compactHistory = await getCompactHistory(req.userId, interview.resumeId, interview.mode);
+      // ─ Fetch compact history (previous interviews only; NOT current interview) ─
+      const previousInterviews = await getPreviousInterviews(
+        req.userId,
+        interview.resumeId,
+        interview.mode,
+        interview._id
+      );
+      const compactHistory = buildCompactHistory(previousInterviews);
 
-      // 8. Generate ONE new question through Groq
+      // ─ Generate next question ─
       const nextQuestionObj = await generateNextQuestion({
         role: interview.role,
         experience: interview.experience,
@@ -283,15 +356,16 @@ export const submitDynamicAnswer = async (req, res) => {
         skills: interview.skills,
         stage: nextStage,
         targetDifficulty,
-        targetTopicFocus: topicFocus,
-        targetTopicMastery,
-        resumeFocusArea,
+        assignedTopic,
+        assignedContext,
+        assignedCategory,
+        bannedSubtopics,
         compactHistory,
         previousQuestions: interview.questions,
         latestAnswer: answer,
-        latestEvaluation: evaluationResult,
+        latestEvaluation: isFollowUp ? evaluationResult : null,
         isFollowUp,
-        followUpAngle
+        followUpAngle,
       });
 
       const nextQId = Math.random().toString(36).substring(7);
@@ -302,43 +376,26 @@ export const submitDynamicAnswer = async (req, res) => {
         subtopic: nextQuestionObj.subtopic,
         category: nextQuestionObj.category,
         difficulty: nextQuestionObj.difficulty,
-        isFollowUp: nextQuestionObj.category === "FOLLOW_UP",
+        isFollowUp,
+        assignedTopic,
         askedAt: new Date(),
       };
 
       interview.questions.push(nextQuestion);
     } else {
+      // ─ Finish interview ─
       interview.status = "Completed";
-      
-      let currentTotalScore = 0;
-      let allStrengths = [];
-      let allWeaknesses = [];
-
-      interview.questions.forEach((q) => {
-        const avgScore = ((q.evaluation?.confidence || 0) + (q.evaluation?.communication || 0) + (q.evaluation?.correctness || 0)) / 3;
-        currentTotalScore += avgScore;
-
-        if (q.evaluation?.strengths) {
-          q.evaluation.strengths.forEach(s => {
-            if (!allStrengths.includes(s)) allStrengths.push(s);
-          });
-        }
-        if (q.evaluation?.weaknesses) {
-          q.evaluation.weaknesses.forEach(w => {
-            if (!allWeaknesses.includes(w)) allWeaknesses.push(w);
-          });
-        }
-      });
-      
-      interview.finalScore = Math.round(currentTotalScore / interview.questions.length);
-      interview.strengths = allStrengths;
-      interview.weaknesses = allWeaknesses;
+      const stats = computeFinalStats(interview.questions);
+      interview.finalScore = stats.finalScore;
+      interview.strengths = stats.strengths;
+      interview.weaknesses = stats.weaknesses;
 
       resume.interviewCount = (resume.interviewCount || 0) + 1;
       await resume.save();
     }
 
     interview.markModified("questions");
+    interview.markModified("topicPlan");
     await interview.save();
 
     res.json({
@@ -352,6 +409,8 @@ export const submitDynamicAnswer = async (req, res) => {
   }
 };
 
+// ─── finishDynamicInterview ───────────────────────────────────────────────────
+
 export const finishDynamicInterview = async (req, res) => {
   try {
     const { interviewId, totalDetections, proctoringLogs } = req.body;
@@ -363,45 +422,20 @@ export const finishDynamicInterview = async (req, res) => {
     if (proctoringLogs !== undefined) interview.proctoringLogs = proctoringLogs;
 
     interview.status = "Completed";
-    
-    let currentTotalScore = 0;
-    let allStrengths = [];
-    let allWeaknesses = [];
-
-    interview.questions.forEach((q) => {
-      const avgScore = ((q.evaluation?.confidence || 0) + (q.evaluation?.communication || 0) + (q.evaluation?.correctness || 0)) / 3;
-      currentTotalScore += avgScore;
-
-      if (q.evaluation?.strengths) {
-        q.evaluation.strengths.forEach(s => {
-          if (!allStrengths.includes(s)) allStrengths.push(s);
-        });
-      }
-      if (q.evaluation?.weaknesses) {
-        q.evaluation.weaknesses.forEach(w => {
-          if (!allWeaknesses.includes(w)) allWeaknesses.push(w);
-        });
-      }
-    });
-    
-    if(interview.questions.length > 0) {
-      interview.finalScore = Math.round(currentTotalScore / interview.questions.length);
-    } else {
-      interview.finalScore = 0;
-    }
-    interview.strengths = allStrengths;
-    interview.weaknesses = allWeaknesses;
+    const stats = computeFinalStats(interview.questions);
+    interview.finalScore = stats.finalScore;
+    interview.strengths = stats.strengths;
+    interview.weaknesses = stats.weaknesses;
 
     await interview.save();
 
-    // Optionally increment resume interviewCount here as well
     const resume = await Resume.findById(interview.resumeId);
     if (resume) {
       resume.interviewCount = (resume.interviewCount || 0) + 1;
       await resume.save();
     }
 
-    res.json({ 
+    res.json({
       _id: interview._id,
       finalScore: interview.finalScore,
       totalDetections: interview.totalDetections || 0,
@@ -409,7 +443,7 @@ export const finishDynamicInterview = async (req, res) => {
       questions: interview.questions,
       strengths: interview.strengths || [],
       weaknesses: interview.weaknesses || [],
-      recordings: interview.recordings || {}
+      recordings: interview.recordings || {},
     });
   } catch (error) {
     console.error("Finish dynamic interview error:", error);
@@ -417,13 +451,12 @@ export const finishDynamicInterview = async (req, res) => {
   }
 };
 
+// ─── getDynamicInterviewReport ────────────────────────────────────────────────
+
 export const getDynamicInterviewReport = async (req, res) => {
   try {
     const interview = await Interview.findById(req.params.id);
-
-    if (!interview) {
-      return res.status(404).json({ message: "Interview not found" });
-    }
+    if (!interview) return res.status(404).json({ message: "Interview not found" });
 
     return res.json({
       _id: interview._id,
@@ -433,13 +466,14 @@ export const getDynamicInterviewReport = async (req, res) => {
       questions: interview.questions,
       strengths: interview.strengths || [],
       weaknesses: interview.weaknesses || [],
-      recordings: interview.recordings || {}
+      recordings: interview.recordings || {},
     });
-
   } catch (error) {
-    return res.status(500).json({ message: `failed to find Interview report ${error}` })
+    return res.status(500).json({ message: `failed to find Interview report ${error}` });
   }
 };
+
+// ─── analyzeResume ────────────────────────────────────────────────────────────
 
 export const analyzeResume = async (req, res) => {
   try {
@@ -448,35 +482,32 @@ export const analyzeResume = async (req, res) => {
     }
 
     const filepath = req.file.path;
-
     const fileBuffer = await fs.promises.readFile(filepath);
     const uint8Array = new Uint8Array(fileBuffer);
 
     const pdf = await pdfjsLib.getDocument({ data: uint8Array }).promise;
 
     let resumeText = "";
-
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const content = await page.getTextContent();
-
       const pageText = content.items.map((item) => item.str).join(" ");
       resumeText += pageText + "\n";
     }
-
     resumeText = resumeText.replace(/\s+/g, " ").trim();
 
     const messages = [
       {
         role: "system",
-        content: `
-You are a resume parser.
+        content: `You are a resume parser.
 
 Rules:
 - Return ONLY valid JSON
 - No explanation or extra text
 - Do NOT guess missing info
 - If missing → use "" or []
+- For skills: extract ALL technical skills, frameworks, tools, languages, and platforms mentioned
+- For projects: extract ALL project names (include academic, personal, and professional projects)
 
 Output format:
 {
@@ -486,8 +517,7 @@ Output format:
   "experience": "string",
   "projects": ["project1", "project2"],
   "skills": ["skill1", "skill2"]
-}
-`,
+}`,
       },
       {
         role: "user",
@@ -498,21 +528,14 @@ Output format:
     const aiResponse = await askAi(messages);
 
     let parsed;
-
     try {
       parsed = JSON.parse(aiResponse);
     } catch (err) {
-      console.error("Invalid JSON:", aiResponse);
-
-      return res.status(500).json({
-        message: "AI returned invalid JSON",
-        raw: aiResponse,
-      });
+      console.error("Invalid JSON from resume parser:", aiResponse);
+      return res.status(500).json({ message: "AI returned invalid JSON", raw: aiResponse });
     }
 
-    if (fs.existsSync(filepath)) {
-      fs.unlinkSync(filepath);
-    }
+    if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
 
     return res.json({
       name: parsed.name || "",
@@ -525,26 +548,25 @@ Output format:
     });
   } catch (error) {
     console.log(error);
-
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     return res.status(500).json({ message: error.message });
   }
 };
 
+// ─── getMyInterviews ──────────────────────────────────────────────────────────
+
 export const getMyInterviews = async (req, res) => {
   try {
-    const Interview = (await import("../models/dynamicInterview.model.js")).default;
     const dynamicInterviews = await Interview.find({ userId: req.userId })
       .select("role experience mode finalScore status createdAt")
       .lean();
 
-    const allInterviews = dynamicInterviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const allInterviews = dynamicInterviews.sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
 
     return res.status(200).json(allInterviews);
   } catch (error) {
-    return res.status(500).json({ message: 'failed to find currentUser Interview ' + error })
+    return res.status(500).json({ message: "failed to find currentUser Interview " + error });
   }
-}
+};
